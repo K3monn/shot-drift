@@ -1,0 +1,104 @@
+{
+  "//": "grind-state.pipe -- SKELETON, not verified against the RocketRide builder yet.",
+  "//_note": "Node type names and config keys below are a best-guess structure based on RocketRide's documented node categories (source/dropper, LLM extraction, custom Python node, embedding, vector DB, chat). Open this in the VS Code RocketRide extension and adjust node types/config keys to match what the builder actually expects before running -- treat this as a wiring diagram, not verified JSON.",
+
+  "name": "grind-state",
+  "description": "Espresso dial-in log with roast-age vs. dial-in drift detection.",
+
+  "flows": [
+    {
+      "flow_name": "log_shot",
+      "description": "Logging flow: raw brew note in, structured + drift-checked shot stored.",
+      "nodes": [
+        {
+          "id": "dropper_source",
+          "type": "source.dropper",
+          "config": {
+            "accepts": "text",
+            "description": "Drop a raw brew note here after pulling a shot."
+          },
+          "outputs": ["raw_note"]
+        },
+        {
+          "id": "extract_shot",
+          "type": "python.custom",
+          "config": {
+            "module": "src/extract_node.py",
+            "function": "extract_shot"
+          },
+          "inputs": ["raw_note"],
+          "outputs": ["structured_shot"]
+        },
+        {
+          "id": "drift_check",
+          "type": "python.custom",
+          "config": {
+            "module": "src/drift_node.py",
+            "function": "annotate_shot"
+          },
+          "inputs": ["structured_shot"],
+          "outputs": ["annotated_shot"]
+        },
+        {
+          "id": "embed_shot",
+          "type": "embedding",
+          "config": {
+            "input_field": "tasting_notes",
+            "model": "TBD -- set in builder"
+          },
+          "inputs": ["annotated_shot"],
+          "outputs": ["embedded_shot"]
+        },
+        {
+          "id": "store_shot",
+          "type": "vector_db.upsert",
+          "config": {
+            "collection": "grind_state_shots",
+            "id_field": "shot_id"
+          },
+          "inputs": ["embedded_shot"],
+          "outputs": []
+        }
+      ]
+    },
+    {
+      "flow_name": "query_shots",
+      "description": "Query flow: ask a question, retrieve relevant shots, get a reasoned answer.",
+      "nodes": [
+        {
+          "id": "chat_source",
+          "type": "source.chat",
+          "config": {
+            "description": "Ask about your brewing history, e.g. 'what grind worked best for the Gedeb?'"
+          },
+          "outputs": ["question"]
+        },
+        {
+          "id": "retrieve_shots",
+          "type": "vector_db.query",
+          "config": {
+            "collection": "grind_state_shots",
+            "top_k": 8
+          },
+          "inputs": ["question"],
+          "outputs": ["retrieved_shots"]
+        },
+        {
+          "id": "reason_over_shots",
+          "type": "llm.completion",
+          "config": {
+            "system_prompt": "You are a dial-in assistant. Answer the user's question using only the retrieved shot history provided, including any drift flags on those shots. Be specific about grind, ratio, and time where relevant.",
+            "model": "TBD -- set in builder"
+          },
+          "inputs": ["question", "retrieved_shots"],
+          "outputs": ["answer"]
+        },
+        {
+          "id": "chat_output",
+          "type": "output.chat",
+          "inputs": ["answer"]
+        }
+      ]
+    }
+  ]
+}
