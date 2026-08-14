@@ -65,4 +65,3 @@ I could have just made this as a Python script and probably finished it faster. 
 
 The idea is to have the extraction, Python drift detection, embeddings, vector database, and chat interface all work together instead of just calling an LLM repeatedly.
 
-The next step is getting the whole thing running inside RocketRide end to end.
