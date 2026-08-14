@@ -50,8 +50,7 @@ def rocketride_status() -> str:
     if parsed.hostname is None or parsed.port is None:
         return f"unconfigured ({uri})"
 
-    # The engine's HTTP health endpoint is available on the same host/port as
-    # the WebSocket endpoint, with ws:// translated to http://.
+    # Check the engine's HTTP health endpoint on the same host and port.
     health_url = f"http://{parsed.hostname}:{parsed.port}/version"
     try:
         with urlopen(health_url, timeout=3) as response:
@@ -60,7 +59,7 @@ def rocketride_status() -> str:
             payload = json.loads(response.read().decode("utf-8"))
             version = payload.get("data", {}).get("version", "unknown")
             return f"connected (engine {version})"
-    except Exception as exc:  # health is useful but does not block the local MVP
+    except Exception as exc:  # A missing engine should not block the local MVP.
         return f"unavailable ({exc.__class__.__name__})"
 
 

@@ -1,33 +1,23 @@
 # drift_node.py
 #
-# Checks whether a new shot has drifted from a bean's best-rated shots,
-# and if so, tries to say why: did the bean just get older, or did
-# something about the brew actually change?
+# Compare a new shot with the best earlier shots for the same bean.
 #
-# How it decides:
-#   1. Pull prior shots for this bean rated >= GOOD_SHOT_RATING_THRESHOLD.
-#      That's the baseline for "what good looks like" on this bean.
-#   2. Compare the new shot's grind, ratio, and time against that baseline.
-#   3. If something's outside tolerance, check whether days_off_roast also
-#      jumped since the baseline average. If it did, blame the bean's age.
-#      If it didn't, it's probably something in the dial-in.
-#
-# Plain Python, no RocketRide imports, so it's easy to test standalone
-# before wrapping it as a node.
+# It uses good-rated history as the baseline, then checks whether the change
+# is more likely caused by roast age or by the brew.
 
 from statistics import mean
 from typing import List, Dict, Any
 
 from schema import GOOD_SHOT_RATING_THRESHOLD, DRIFT_COMPARISON_FIELDS
 
-# how far off the baseline average a value can be before it counts as drift
+# Difference from the baseline that counts as drift.
 TOLERANCES = {
     "grind_setting": 0.15,
     "ratio": 0.10,
     "time_s": 3.0,
 }
 
-# if days_off_roast jumped by at least this much vs. the baseline, blame the bean
+# Roast-age change large enough to explain the drift.
 ROAST_AGE_JUMP_THRESHOLD = 5
 
 FIELD_LABELS = {
@@ -87,8 +77,7 @@ def annotate_shot(new_shot: Dict[str, Any], history: List[Dict[str, Any]]) -> Di
 
 
 if __name__ == "__main__":
-    # sanity check: replay every seed shot chronologically per bean,
-    # using only earlier shots as history, and print what gets flagged
+    # Replay each bean's history in date order so future shots cannot affect it.
     import json
     from pathlib import Path
     from collections import defaultdict

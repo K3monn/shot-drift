@@ -1,10 +1,7 @@
 # extract_node.py
 #
-# Turns a raw brew note into a structured Shot. This is the MVP version --
-# simple keyword matching, no LLM call, so the pipeline logic can be built
-# and tested without needing an API key or the RocketRide runtime yet.
-# Once this is wired into RocketRide, an actual LLM extraction node would
-# do a better job parsing loose phrasing than the regex below does.
+# Turn a raw brew note into a structured shot record.
+# This MVP uses regexes so it runs without an API key or RocketRide.
 #
 # Example input:
 #   "Gedeb Espresso, day 6 off roast, grind 3.0, dose 18.2, yield 36.5,
@@ -16,7 +13,7 @@ from typing import Dict, Any, Optional
 
 from schema import Shot, ROAST_LEVEL_GRIND_BASE
 
-# known beans from the seed data -- add your own here as you log more
+# Beans known to the local extractor. Add your own as needed.
 KNOWN_BEANS = {
     "natural sidamo twakok g1": {
         "roaster": "Kakalove Cafe", "roast_level": "Light", "origin_country": "Ethiopia",
@@ -67,7 +64,7 @@ def extract_shot(raw_note: str, shot_id: str, roast_date: str, brew_date: Option
     temp = _find(rf"temp\D{{0,5}}{NUMBER}", raw_note)
     rating = _find(rf"rating\D{{0,5}}{NUMBER}", raw_note)
 
-    # fill in reasonable defaults for anything the note didn't mention
+    # Use simple defaults when the note leaves a field out.
     if grind is None:
         grind = ROAST_LEVEL_GRIND_BASE[bean_info["roast_level"]]
     if dose is None:

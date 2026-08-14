@@ -1,74 +1,80 @@
 # grind-state
 
-A RocketRide pipeline that tries to answer a question I keep asking myself every time a shot tastes off: **is this actually my fault, or is the bean just doing what beans do as they age?**
+I built this to answer a simple question: when an espresso shot changes, did I
+change the dial-in, or did the bean get older?
 
-## Why I'm building this
+The project logs shot data, compares each shot with the best earlier shots for
+the same bean, and labels meaningful changes as either dial-in drift or
+roast-age drift.
 
-I don't actually log my espresso shots — no notebook, no app, nothing. Every "why does this taste sour today" moment just evaporates instead of turning into something I could learn from. So instead of starting the habit with a plain notes app, I wanted to build something that could reason about the data a little, since that's the part I actually find interesting.
+## What is here
 
-The specific thing I wanted: most dial-in advice treats "your shot is off" as one problem. It's not. Sometimes you actually changed something (bumped the grinder, grabbed a different bag). Sometimes you didn't change anything and the bean just moved — beans rest, peak, and go stale on a pretty predictable curve, and your grind setting has to chase that even if your hands did everything the same. I wanted a pipeline that could tell the difference.
+- `data/seed_shots.json` — synthetic shot history for five real coffee beans.
+- `src/extract_node.py` — turns a short brew note into a shot record.
+- `src/drift_node.py` — compares a shot with its bean-specific baseline.
+- `src/run_mvp.py` — loads the seed data and runs the complete local MVP.
+- `pipeline/grind-state.pipe` — RocketRide pipeline for logging and indexing shots.
+- `pipeline/query-shots.pipe` — RocketRide pipeline for querying shot history.
+- `env.example` — configuration template. Do not commit `.env`.
 
-## What it actually does
+The seed telemetry is fabricated. I used it to create realistic changes as the
+beans rest and age, so the drift logic has something to catch. Replace it with
+your own records when you fork the project.
 
-- You log a shot (bean, grind, dose, yield, time, tasting notes).
-- It gets structured and stored.
-- A drift-detection node compares the new shot against your best-rated shots *for that specific bean* — not some generic espresso ideal — and checks: is this deviation because the bean aged since your last shot, or because something about the dial-in itself changed?
-- You can ask it things later, like "what grind actually worked for this bean" or "why has this bag been tasting off lately," and it answers from your own logged history.
+## Run the local MVP
 
-## On the data — being upfront about it
-
-I don't have months of real shot logs sitting around, so the shot-level data (grind, dose, yield, time, rating) in `data/seed_shots.json` is fabricated. I built in realistic dial-in arcs on purpose — the resting slump a few days after roast, the sweet spot, grind creeping finer as a bag ages, the eventual decline — so there's actually something for the drift node to catch, but it's synthetic and I'm not pretending otherwise.
-
-What's *not* fabricated: the beans themselves. Name, roaster, origin, and roast level for all five beans come from a real coffee review dataset (`simplified_coffee.csv`), filtered down to beans that were specifically reviewed as espresso, one from each roast level the dataset had. The baseline grind setting for each bean is derived from its real roast level too — darker roasts are more porous and extract faster, so they need a coarser grind than lighter roasts to hit the same shot time. That's real coffee physics, not a number I made up to make the demo work.
-
-So: real beans, fabricated shots on top of them. If you fork this, swap in your own actual logs and the fake data disappears entirely.
-
-## Project structure
-
-```
-grind-state/
-├── data/
-│   └── seed_shots.json      # seed dataset — real beans, fabricated shot telemetry
-├── src/
-│   ├── schema.py             # the shot record structure everything else builds on
-│   ├── generate_data.py      # builds seed_shots.json
-│   ├── extract_node.py       # parses a raw brew note into a structured shot (MVP: regex-based)
-│   └── drift_node.py         # the drift-detection logic — roast-age vs. dial-in
-└── pipeline/
-    ├── grind-state.pipe      # native RocketRide shot logging/indexing pipeline
-    └── query-shots.pipe      # native RocketRide history query pipeline
-```
-
-## Status
-
-Core logic is done and tested against the seed data:
-- `extract_node.py` turns a raw brew note into a structured shot (rule-based for now — a real LLM extraction node would handle messier phrasing better, this is the MVP version)
-- `drift_node.py` correctly distinguishes roast-age drift from dial-in drift when tested chronologically against the seed dataset — e.g. the Gedeb Espresso shots past day 20 all correctly get flagged as roast-age drift, matching the aging curve baked into the seed data
-
-Run `python3 drift_node.py` from `src/` to see the full drift check output across every bean in the seed data.
-
-For a one-command local MVP run (including seed-data loading and a RocketRide
-health check), run `python3 run_mvp.py` from `src/`. It works without external
-Python packages; RocketRide is reported as unavailable rather than preventing
-the deterministic drift report from running.
-
-Forks can use the standalone MVP without any credentials: copy or replace
-`data/seed_shots.json` with your own shot records and run the command above.
-RocketRide Cloud and the native LLM/vector-search pipelines are optional; keep
-personal credentials in an untracked `.env` file and use `env.example` as the
-template.
-
-The pipeline files now use the actual RocketRide catalog providers and schema: `dropper`, `parse`, `extract_data`, `embedding_transformer`, `qdrant`, `chat`, `llm_openai`, and `response_answers`. The exact deterministic roast-age/dial-in comparison in `src/drift_node.py` remains documented as the next custom-node step because the current catalog does not expose a general Python lane processor. Set `ROCKETRIDE_OPENAI_KEY` and run a local Qdrant service before executing the native pipelines.
-
-## Running it
+The standalone MVP has no third-party Python dependencies and does not require
+RocketRide, OpenAI, or Qdrant.
 
 ```bash
 cd src
-python3 generate_data.py   # regenerate seed_shots.json from scratch
-python3 drift_node.py      # run drift detection across the seed dataset
-python3 extract_node.py    # see an example raw note get structured
+python3 run_mvp.py
 ```
 
-## Why RocketRide
+The runner loads the seed data, replays shots in date order, prints drift
+findings, and checks RocketRide if `ROCKETRIDE_URI` is available. A missing
+RocketRide connection does not stop the drift report.
 
-I could've written this as a standalone Python script and probably finished faster. The reason I didn't: I wanted an excuse to actually compose something out of RocketRide's node system instead of just calling an LLM in a loop — extraction, a custom Python node for the drift math, embeddings, a vector DB, a chat interface — and see what that gets me for free versus what I'd have had to hand-roll anyway. More on that once it's actually running end to end.
+You can also run each piece directly:
+
+```bash
+python3 drift_node.py
+python3 extract_node.py
+python3 generate_data.py
+```
+
+## Use your own data
+
+Replace `data/seed_shots.json` with a JSON array using the fields in
+`src/schema.py`, then run `run_mvp.py` again. The standalone path is the part
+that works out of the box for a fork.
+
+## Use RocketRide
+
+The native pipelines use RocketRide nodes for parsing, extraction, embeddings,
+Qdrant storage, and responses. They are separate from the standalone drift
+logic.
+
+For a local engine, copy `env.example` to `.env` and use:
+
+```env
+ROCKETRIDE_URI=ws://localhost:5565
+```
+
+The native pipelines also need an OpenAI key and a running Qdrant instance. For
+RocketRide Cloud, use the endpoint and auth variable documented by RocketRide:
+
+```env
+ROCKETRIDE_URI=https://api.rocketride.ai
+ROCKETRIDE_AUTH=your-token
+```
+
+Keep real credentials in the untracked `.env` file. The exact deterministic
+drift comparison in `src/drift_node.py` is still a standalone step; the current
+catalog does not provide a general Python lane processor for it.
+
+## Current status
+
+The local MVP is working and tested against the seed data. The RocketRide pipe
+files are valid native pipeline JSON and are ready for a configured engine,
+OpenAI key, and Qdrant service.
