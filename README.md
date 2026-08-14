@@ -35,7 +35,8 @@ grind-state/
 │   ├── extract_node.py       # parses a raw brew note into a structured shot (MVP: regex-based)
 │   └── drift_node.py         # the drift-detection logic — roast-age vs. dial-in
 └── pipeline/
-    └── grind-state.pipe      # wires it all together as a RocketRide pipeline (skeleton, unverified against builder)
+    ├── grind-state.pipe      # native RocketRide shot logging/indexing pipeline
+    └── query-shots.pipe      # native RocketRide history query pipeline
 ```
 
 ## Status
@@ -46,7 +47,12 @@ Core logic is done and tested against the seed data:
 
 Run `python3 drift_node.py` from `src/` to see the full drift check output across every bean in the seed data.
 
-What's left: `pipeline/grind-state.pipe` is a structural skeleton I wrote based on RocketRide's documented node types, but I haven't opened it in the actual builder yet to confirm the node type names and config keys match what it expects. That's the next step — get it loading and running inside RocketRide itself, not just as standalone Python.
+For a one-command local MVP run (including seed-data loading and a RocketRide
+health check), run `python3 run_mvp.py` from `src/`. It works without external
+Python packages; RocketRide is reported as unavailable rather than preventing
+the deterministic drift report from running.
+
+The pipeline files now use the actual RocketRide catalog providers and schema: `dropper`, `parse`, `extract_data`, `embedding_transformer`, `qdrant`, `chat`, `llm_openai`, and `response_answers`. The exact deterministic roast-age/dial-in comparison in `src/drift_node.py` remains documented as the next custom-node step because the current catalog does not expose a general Python lane processor. Set `ROCKETRIDE_OPENAI_KEY` and run a local Qdrant service before executing the native pipelines.
 
 ## Running it
 
