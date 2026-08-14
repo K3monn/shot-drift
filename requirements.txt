@@ -1,0 +1,6 @@
+# No external dependencies right now -- schema.py, generate_data.py,
+# drift_node.py, and extract_node.py only use the Python standard library
+# (dataclasses, json, random, re, statistics, datetime, pathlib).
+#
+# This will need real entries once the RocketRide pipeline is wired up
+# for real (embedding model client, vector DB client, etc.).
