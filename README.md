@@ -17,9 +17,7 @@ roast-age drift.
 - `pipeline/query-shots.pipe` — RocketRide pipeline for querying shot history.
 - `env.example` — configuration template. Do not commit `.env`.
 
-The seed telemetry is fabricated. I used it to create realistic changes as the
-beans rest and age, so the drift logic has something to catch. Replace it with
-your own records when you fork the project.
+ Replace it with your own records when you fork the project.
 
 ## Run the local MVP
 
