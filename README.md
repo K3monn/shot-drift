@@ -52,6 +52,12 @@ health check), run `python3 run_mvp.py` from `src/`. It works without external
 Python packages; RocketRide is reported as unavailable rather than preventing
 the deterministic drift report from running.
 
+Forks can use the standalone MVP without any credentials: copy or replace
+`data/seed_shots.json` with your own shot records and run the command above.
+RocketRide Cloud and the native LLM/vector-search pipelines are optional; keep
+personal credentials in an untracked `.env` file and use `env.example` as the
+template.
+
 The pipeline files now use the actual RocketRide catalog providers and schema: `dropper`, `parse`, `extract_data`, `embedding_transformer`, `qdrant`, `chat`, `llm_openai`, and `response_answers`. The exact deterministic roast-age/dial-in comparison in `src/drift_node.py` remains documented as the next custom-node step because the current catalog does not expose a general Python lane processor. Set `ROCKETRIDE_OPENAI_KEY` and run a local Qdrant service before executing the native pipelines.
 
 ## Running it
