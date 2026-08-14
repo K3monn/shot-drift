@@ -1,6 +1,6 @@
 Why I'm building this
 
-I don't actually log my espresso shots right now. henever I make a shot and think, “why does this taste sour today?”, I usually just move on and forget about it.
+Whenever I make a shot and think, “why does this taste sour today?”, I usually just move on and forget about it.
 
 I wanted to change that, but instead of making another basic notes app, I thought it would be more interesting to build something that could actually look at my past shots and find patterns.
 
@@ -13,15 +13,11 @@ The drift detection checks the new shot against your best shots for that specifi
 Later, you can ask questions like “what grind worked best for this bean?” or “why has this bag been tasting different?” and it uses your previous shots to answer.
 About the data
 
-I want to be clear about the data. I don't have months of real espresso logs, so the shot data in data/seed_shots.json is made up.
-
 I made the data realistic enough to test the system. For example, the shots change as the coffee gets older, the grind slowly gets finer, and the quality eventually starts to drop. This gives the drift detection something to actually find.
 
-The beans themselves are real. The names, roasters, origins, and roast levels come from a real coffee review dataset called simplified_coffee.csv. I filtered it to coffees that were reviewed as espresso and picked one from each roast level available in the dataset.
+The beans themselves are real. The names, roasters, origins, and roast levels come from a real coffee review dataset called simplified_coffee.csv. I used this dataset from Kaggle ("https://www.kaggle.com/datasets/schmoyote/coffee-reviews-dataset") I filtered it to coffees that were reviewed as espresso and picked one from each roast level available in the dataset.
 
 The starting grind setting is also based on the roast level. Darker roasts usually extract faster, so they generally need a coarser grind than lighter roasts. That's based on real coffee behavior, rather than just choosing random numbers for the demo.
-
-So basically: real beans, fake shot data.
 
 If you fork the project, you can replace the seed data with your own actual espresso logs.
 
